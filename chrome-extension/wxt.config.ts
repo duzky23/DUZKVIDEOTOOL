@@ -4,9 +4,9 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'DUZKVIDEOTOOL - Trợ Lý Douyin, Bilibili, Xiaohongshu & AI Video',
-    description: 'DUZKVIDEOTOOL: Quét, tải video không logo từ Douyin, Bilibili, Xiaohongshu, TikTok và đồng bộ Studio lồng tiếng AI.',
-    version: '3.1.0',
+    name: 'DUZKVIDEOTOOL - Trợ Lý Douyin, Bilibili, Xiaohongshu, YouTube & AI Video',
+    description: 'DUZKVIDEOTOOL: Quét, tải video không logo từ Douyin, Bilibili, Xiaohongshu, TikTok, YouTube, Facebook và đồng bộ Studio lồng tiếng AI.',
+    version: '3.2.0',
     permissions: ['tabs', 'scripting', 'downloads', 'storage', 'sidePanel'],
     host_permissions: [
       '*://*.douyin.com/*',
@@ -24,7 +24,15 @@ export default defineConfig({
       '*://*.b23.tv/*',
       'https://*.bilivideo.com/*',
       'https://*.hdslb.com/*',
-      'https://*.akamaized.net/*'
+      'https://*.akamaized.net/*',
+      '*://*.youtube.com/*',
+      '*://*.youtu.be/*',
+      '*://*.tiktok.com/*',
+      '*://*.tiktokcdn.com/*',
+      '*://*.facebook.com/*',
+      '*://*.fbcdn.net/*',
+      '*://*.instagram.com/*',
+      '*://*.cdninstagram.com/*'
     ]
   }
 });
