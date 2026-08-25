@@ -99,8 +99,10 @@ async function getTtwidCookie() {
   return cachedTtwid;
 }
 
+import { getYtDlpInfo } from './ytdlpService.js';
+
 /**
- * Universal video extractor for Douyin, TikTok, Xiaohongshu, Kuaishou
+ * Universal video extractor for Douyin, TikTok, Xiaohongshu, Bilibili, YouTube, Facebook, Kuaishou, etc.
  */
 export async function extractVideoInfo(rawUrl) {
   const url = cleanUrl(rawUrl);
@@ -133,18 +135,46 @@ export async function extractVideoInfo(rawUrl) {
     };
   }
 
+  // YouTube, Facebook, Instagram, X/Twitter, Threads, Reddit
+  if (
+    url.includes('youtube.com') ||
+    url.includes('youtu.be') ||
+    url.includes('facebook.com') ||
+    url.includes('fb.watch') ||
+    url.includes('instagram.com') ||
+    url.includes('twitter.com') ||
+    url.includes('x.com') ||
+    url.includes('reddit.com')
+  ) {
+    console.log(`[Universal Extractor] Extracting via yt-dlp Engine: ${url}`);
+    return await getYtDlpInfo(url);
+  }
 
-  if (url.includes('douyin.com') || url.includes('iesdouyin.com')) {
-    return await extractDouyin(url);
-  } else if (url.includes('tiktok.com')) {
-    return await extractTikTok(url);
-  } else if (url.includes('xiaohongshu.com') || url.includes('xhslink.com')) {
-    return await extractXiaohongshu(url);
-  } else if (url.includes('bilibili.com') || url.includes('b23.tv')) {
-    return await extractBilibili(url);
-  } else if (url.includes('kuaishou.com')) {
-    return await extractKuaishou(url);
-  } else {
+  try {
+    if (url.includes('douyin.com') || url.includes('iesdouyin.com')) {
+      return await extractDouyin(url);
+    } else if (url.includes('tiktok.com')) {
+      return await extractTikTok(url);
+    } else if (url.includes('xiaohongshu.com') || url.includes('xhslink.com')) {
+      return await extractXiaohongshu(url);
+    } else if (url.includes('bilibili.com') || url.includes('b23.tv')) {
+      return await extractBilibili(url);
+    } else if (url.includes('kuaishou.com')) {
+      return await extractKuaishou(url);
+    }
+  } catch (err) {
+    console.warn(`[Fast Extractor] Primary engine failed (${err.message}). Falling back to yt-dlp engine...`);
+    try {
+      return await getYtDlpInfo(url);
+    } catch (ytdlpErr) {
+      throw new Error(`Bóc tách thất bại: ${err.message} (yt-dlp: ${ytdlpErr.message})`);
+    }
+  }
+
+  // Universal Fallback for any other links
+  try {
+    return await getYtDlpInfo(url);
+  } catch (e) {
     return {
       platform: 'generic',
       title: 'Video tải từ đường dẫn trực tiếp',
@@ -155,8 +185,8 @@ export async function extractVideoInfo(rawUrl) {
       images: []
     };
   }
-
 }
+
 
 function cleanUrl(text) {
   if (!text) return '';
