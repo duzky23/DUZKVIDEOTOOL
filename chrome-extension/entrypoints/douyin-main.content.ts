@@ -309,37 +309,53 @@ export default defineContentScript({
                 ));
             },
             A = () => {
+              const seenAwemeOnPage = new Set();
               const n = location.pathname.includes("/user/")
                   ? 'a[href^="/video/"]'
-                  : 'a[href*="/video/"]',
-                t = [
-                  ...document.querySelectorAll("video"),
-                  ...document.querySelectorAll(n),
-                ];
+                  : 'a[href*="/video/"]';
+              
+              // Prioritize active video elements and top-level cards
+              const videos = Array.from(document.querySelectorAll("video"));
+              const links = Array.from(document.querySelectorAll(n));
+              const t = [...videos, ...links];
+
               for (const e of t) {
+                // Skip child elements if parent container is already tagged
+                if (e.parentElement?.closest(`[${a}]`)) continue;
+
                 const u = x(e),
                   s = u
                     ? N(u, e)
                     : e instanceof HTMLAnchorElement
                       ? M(e)
                       : void 0;
-                if (!s) continue;
-                const o = e.getAttribute(a);
+                if (!s || !s.id) continue;
+
+                // Pick the highest sensible card or player container to tag
+                const targetHost = e.closest('[data-e2e="feed-active-video"], .xgplayer-container, li[class*="item"], div[class*="card"]') || e.parentElement || e;
+
+                if (seenAwemeOnPage.has(s.id) && !location.pathname.includes("/user/")) {
+                  // In single video view or feed, don't tag multiple child wrappers
+                  continue;
+                }
+                seenAwemeOnPage.add(s.id);
+
+                const o = targetHost.getAttribute(a);
                 let r;
                 try {
                   r = o ? JSON.parse(o) : void 0;
                 } catch {
                   r = void 0;
                 }
-                (C.get(e) === s.id &&
-                  ((r != null && r.mediaUrl) || !s.mediaUrl)) ||
-                  (C.set(e, s.id),
-                  e.setAttribute(a, JSON.stringify(s)),
-                  e.dispatchEvent(
+                if (C.get(targetHost) !== s.id || (s.mediaUrl && (!r || !r.mediaUrl))) {
+                  C.set(targetHost, s.id);
+                  targetHost.setAttribute(a, JSON.stringify(s));
+                  targetHost.dispatchEvent(
                     new Event("social-intelligence:aweme-ready", {
                       bubbles: !0,
                     }),
-                  ));
+                  );
+                }
               }
               W();
             };
