@@ -45,6 +45,43 @@ export async function getYtDlpInfo(url) {
           videoUrl = bestFormat?.url;
         }
 
+        // Trích xuất danh sách tất cả chất lượng video có sẵn (4K, 2K, 1080p, 720p)
+        const qualities = [];
+        if (data.formats && Array.isArray(data.formats)) {
+          const seenResolutions = new Set();
+          data.formats.forEach(f => {
+            if (f.url && f.vcodec !== 'none') {
+              const h = f.height || 0;
+              const w = f.width || 0;
+              const maxDim = Math.max(w, h);
+              let qLabel = `${h || 'HD'}p`;
+              if (maxDim >= 3840 || h >= 2160) qLabel = '💎 4K (2160p)';
+              else if (maxDim >= 2560 || h >= 1440) qLabel = '✨ 2K (1440p)';
+              else if (maxDim >= 1920 || h >= 1080) qLabel = `🌟 1080p${f.fps > 30 ? ' (60fps)' : ' (Full HD)'}`;
+              else if (maxDim >= 1280 || h >= 720) qLabel = '720p (HD)';
+              else if (h > 0) qLabel = `${h}p (Tiêu chuẩn)`;
+
+              const resKey = `${qLabel}_${f.ext}`;
+              if (!seenResolutions.has(resKey)) {
+                seenResolutions.add(resKey);
+                qualities.push({
+                  label: qLabel,
+                  resolution: `${w}x${h}`,
+                  width: w,
+                  height: h,
+                  fps: f.fps || 30,
+                  ext: f.ext || 'mp4',
+                  filesize: f.filesize || f.filesize_approx || 0,
+                  url: f.url
+                });
+              }
+            }
+          });
+        }
+
+        // Sắp xếp chất lượng cao nhất lên đầu
+        qualities.sort((a, b) => (b.width * b.height || b.height) - (a.width * a.height || a.height));
+
         // Trích xuất danh sách phụ đề có sẵn
         const existingSubtitles = [];
         const allSubs = { ...(data.subtitles || {}), ...(data.automatic_captions || {}) };
@@ -68,6 +105,7 @@ export async function getYtDlpInfo(url) {
           videoUrl: videoUrl || url,
           directPlayUrl: videoUrl,
           platform: data.extractor_key || data.extractor || 'Universal',
+          qualities: qualities.length > 0 ? qualities : [{ label: '1080p (Full HD)', url: videoUrl || url }],
           existingSubtitles,
           rawJson: data
         });

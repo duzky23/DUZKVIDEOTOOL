@@ -287,6 +287,48 @@ async function extractDouyin(url) {
         }
       }
 
+      const qualities = [];
+      if (aweme.video?.bit_rate && Array.isArray(aweme.video.bit_rate)) {
+        const seenGear = new Set();
+        aweme.video.bit_rate.forEach(b => {
+          const rawUrl = b.play_addr?.url_list?.[0];
+          if (rawUrl) {
+            const w = b.play_addr?.width || 0;
+            const h = b.play_addr?.height || 0;
+            const maxDim = Math.max(w, h);
+            let qLabel = '720p (HD)';
+            if (maxDim >= 3840 || b.gear_name?.toLowerCase().includes('4k')) qLabel = '💎 4K (2160p)';
+            else if (maxDim >= 2560 || b.gear_name?.toLowerCase().includes('2k')) qLabel = '✨ 2K (1440p)';
+            else if (maxDim >= 1920 || b.gear_name?.toLowerCase().includes('1080')) qLabel = '🌟 1080p (Full HD)';
+            else if (maxDim >= 1280 || b.gear_name?.toLowerCase().includes('720')) qLabel = '720p (HD)';
+            else qLabel = '540p (Tiêu chuẩn)';
+
+            const qKey = `${qLabel}_${w}x${h}`;
+            if (!seenGear.has(qKey)) {
+              seenGear.add(qKey);
+              qualities.push({
+                label: qLabel,
+                gear: b.gear_name || '',
+                resolution: `${w}x${h}`,
+                width: w,
+                height: h,
+                bitrate: b.bit_rate,
+                fps: b.FPS || 30,
+                url: rawUrl.replace('playwm', 'play')
+              });
+            }
+          }
+        });
+      }
+
+      // Sắp xếp chất lượng cao nhất lên đầu (4K -> 2K -> 1080p -> 720p)
+      qualities.sort((a, b) => (b.width * b.height || b.bitrate) - (a.width * a.height || a.bitrate));
+
+      // Mặc định chọn luồng chất lượng cao nhất
+      if (qualities.length > 0 && qualities[0].url) {
+        playUrl = qualities[0].url;
+      }
+
       const coverUrl = aweme.video?.cover?.url_list?.[0] || aweme.video?.origin_cover?.url_list?.[0] || '';
       const musicUrl = aweme.music?.play_url?.url_list?.[0] || '';
       const images = (aweme.images || []).map(img => img.url_list?.[0]).filter(Boolean);
@@ -304,6 +346,7 @@ async function extractDouyin(url) {
         likes: aweme.statistics?.digg_count || 0,
         comments: aweme.statistics?.comment_count || 0,
         shares: aweme.statistics?.share_count || 0,
+        qualities: qualities.length > 0 ? qualities : [{ label: '1080p (Full HD)', url: playUrl }],
         images
       };
     }

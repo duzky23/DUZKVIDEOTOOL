@@ -793,6 +793,65 @@ export const DubbingStudio: React.FC<DubbingStudioProps> = ({ apiKey, openSettin
                   <span>Tác giả: @{videoData.author}</span>
                   {videoData.likes > 0 && <span>❤️ {videoData.likes.toLocaleString()}</span>}
                   {videoData.shares > 0 && <span>🔁 {videoData.shares.toLocaleString()}</span>}
+                  {videoData.duration > 0 && <span>⏱️ {videoData.duration}s</span>}
+                </div>
+
+                {/* Multi-Resolution & 4K Quality Selector Card */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'linear-gradient(90deg, rgba(0, 242, 254, 0.08) 0%, rgba(254, 44, 85, 0.08) 100%)',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid rgba(0, 242, 254, 0.25)',
+                  marginTop: '12px',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-cyan)' }}>
+                      💎 Chất Lượng Video:
+                    </span>
+                    {videoData.qualities && videoData.qualities.length > 0 ? (
+                      <select
+                        value={videoData.videoUrl}
+                        onChange={(e) => {
+                          const selectedUrl = e.target.value;
+                          setVideoData({ ...videoData, videoUrl: selectedUrl });
+                        }}
+                        className="select-field"
+                        style={{
+                          padding: '5px 10px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          borderRadius: '6px',
+                          background: '#0F172A',
+                          color: '#00F2FE',
+                          border: '1px solid #00F2FE',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {videoData.qualities.map((q: any, idx: number) => (
+                          <option key={idx} value={q.url}>
+                            {q.label} {q.resolution ? `(${q.resolution})` : ''} {q.fps > 30 ? `· ${q.fps}fps` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="badge badge-cyan" style={{ fontSize: '11px' }}>🌟 1080p (Full HD Gốc)</span>
+                    )}
+                  </div>
+
+                  <a
+                    href={`/api/proxy-media?url=${encodeURIComponent(videoData.videoUrl)}&download=1&filename=${encodeURIComponent((videoData.title || 'video').slice(0, 40) + '.mp4')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-primary"
+                    style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 800, textDecoration: 'none' }}
+                  >
+                    📥 Tải Video Không Logo
+                  </a>
                 </div>
               </div>
             </div>
