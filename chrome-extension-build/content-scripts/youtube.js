@@ -6,9 +6,9 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        background: rgba(10, 15, 26, 0.88);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
+        background: rgba(10, 15, 26, 0.92);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         padding: 6px 12px;
         border-radius: 24px;
         border: 1px solid rgba(255, 0, 0, 0.4);
@@ -24,13 +24,53 @@
         border: none;
         cursor: pointer;
         transition: transform 0.15s ease;
-      `,a.onmouseenter=()=>{a.style.transform=`scale(1.05)`},a.onmouseleave=()=>{a.style.transform=`scale(1.0)`},a.onclick=e=>{e.stopPropagation();let n=`http://localhost:5000/?url=${encodeURIComponent(t)}&autoExtract=1`;window.open(n,`_blank`)};let o=document.createElement(`button`);o.innerHTML=`📥 Tải MP4`,o.style.cssText=`
+      `,a.onmouseenter=()=>{a.style.transform=`scale(1.05)`},a.onmouseleave=()=>{a.style.transform=`scale(1.0)`},a.onclick=e=>{e.stopPropagation();let n=`http://localhost:5000/?url=${encodeURIComponent(t)}&autoExtract=1`;window.open(n,`_blank`)};let o=document.createElement(`button`);o.innerHTML=`💎 Chọn Tải 4K/HD ▼`,o.style.cssText=`
         background: rgba(255, 255, 255, 0.12);
-        color: #FFFFFF;
-        font-weight: 600;
+        color: #00F2FE;
+        font-weight: 700;
         font-size: 11px;
         padding: 6px 12px;
         border-radius: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(0, 242, 254, 0.4);
         cursor: pointer;
-      `,o.onclick=async e=>{e.stopPropagation(),o.innerHTML=`⏳ Đang lấy...`;try{let e=await(await fetch(`http://localhost:5000/api/extract`,{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify({url:t})})).json();if(e.videoUrl){let t=`http://localhost:5000/api/proxy-media?url=${encodeURIComponent(e.videoUrl)}&download=1&filename=${encodeURIComponent((n||`youtube_video`).slice(0,40)+`.mp4`)}`;window.open(t,`_blank`)}}catch{alert(`Vui lòng bật Server DUZKVIDEOTOOL tại http://localhost:5000`)}finally{o.innerHTML=`📥 Tải MP4`}},i.appendChild(a),i.appendChild(o),e.style&&getComputedStyle(e).position===`static`&&(e.style.position=`relative`),e.appendChild(i)}setInterval(t,1e3),window.addEventListener(`yt-navigate-finish`,t)}}),n={debug:(...e)=>([...e],void 0),log:(...e)=>([...e],void 0),warn:(...e)=>([...e],void 0),error:(...e)=>([...e],void 0)};return(async()=>{try{return await t.main()}catch(e){throw n.error(`The content script "youtube" crashed on startup!`,e),e}})()})();
+        transition: background 0.15s ease;
+      `;let s=document.createElement(`div`);s.style.cssText=`
+        position: absolute;
+        top: 42px;
+        right: 0;
+        background: rgba(10, 15, 26, 0.96);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(0, 242, 254, 0.35);
+        border-radius: 12px;
+        padding: 8px;
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 180px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+        z-index: 1000000;
+      `;let c=!1,l=null;o.onclick=async e=>{if(e.stopPropagation(),c){s.style.display=`none`,c=!1;return}s.innerHTML=`<div style="color:#aaa;font-size:11px;padding:6px;text-align:center;">⏳ Đang quét chất lượng video...</div>`,s.style.display=`flex`,c=!0;try{if(!l){let e=await(await fetch(`http://localhost:5000/api/extract`,{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify({url:t})})).json();if(!e.ok)throw Error(e.error);l=e.data}if(s.innerHTML=``,(l.qualities||[{label:`1080p (Full HD)`,url:l.videoUrl}]).forEach(e=>{let t=document.createElement(`a`);t.href=`http://localhost:5000/api/proxy-media?url=${encodeURIComponent(e.url)}&download=1&filename=${encodeURIComponent((n||`video`).slice(0,30)+`_${e.label.replace(/[^\w]/g,`_`)}.mp4`)}`,t.target=`_blank`,t.innerHTML=`<span>📥 ${e.label}</span> <span style="opacity:0.6;font-size:10px;">${e.resolution||``}</span>`,t.style.cssText=`
+              color: #fff;
+              font-size: 11px;
+              font-weight: 600;
+              text-decoration: none;
+              padding: 6px 10px;
+              border-radius: 6px;
+              background: rgba(255,255,255,0.06);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              transition: background 0.15s ease;
+            `,t.onmouseenter=()=>{t.style.background=`rgba(0, 242, 254, 0.2)`},t.onmouseleave=()=>{t.style.background=`rgba(255,255,255,0.06)`},t.onclick=e=>{e.stopPropagation(),s.style.display=`none`,c=!1},s.appendChild(t)}),l.musicUrl||l.videoUrl){let e=document.createElement(`a`);e.href=`http://localhost:5000/api/proxy-media?url=${encodeURIComponent(l.musicUrl||l.videoUrl)}&download=1&filename=${encodeURIComponent((n||`audio`).slice(0,30)+`.mp3`)}`,e.target=`_blank`,e.innerHTML=`<span>🎵 Tải Audio MP3</span>`,e.style.cssText=`
+              color: #FFE500;
+              font-size: 11px;
+              font-weight: 700;
+              text-decoration: none;
+              padding: 6px 10px;
+              border-radius: 6px;
+              background: rgba(255, 229, 0, 0.1);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            `,e.onclick=e=>{e.stopPropagation(),s.style.display=`none`,c=!1},s.appendChild(e)}}catch(e){s.innerHTML=`<div style="color:#F87171;font-size:11px;padding:6px;">⚠️ Lỗi: ${e.message}<br/>Hãy bật Server DUZK tại port 5000</div>`}},document.addEventListener(`click`,e=>{i.contains(e.target)||(s.style.display=`none`,c=!1)}),i.appendChild(a),i.appendChild(o),i.appendChild(s),e.style&&getComputedStyle(e).position===`static`&&(e.style.position=`relative`),e.appendChild(i)}setInterval(t,1e3),window.addEventListener(`yt-navigate-finish`,t)}}),n={debug:(...e)=>([...e],void 0),log:(...e)=>([...e],void 0),warn:(...e)=>([...e],void 0),error:(...e)=>([...e],void 0)};return(async()=>{try{return await t.main()}catch(e){throw n.error(`The content script "youtube" crashed on startup!`,e),e}})()})();

@@ -42,9 +42,9 @@ export default defineContentScript({
         display: flex;
         align-items: center;
         gap: 8px;
-        background: rgba(10, 15, 26, 0.88);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
+        background: rgba(10, 15, 26, 0.92);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         padding: 6px 12px;
         border-radius: 24px;
         border: 1px solid rgba(255, 0, 0, 0.4);
@@ -75,47 +75,143 @@ export default defineContentScript({
         window.open(studioUrl, '_blank');
       };
 
-      // 2. Nút Tải Video MP4
-      const dlVideoBtn = document.createElement('button');
-      dlVideoBtn.innerHTML = '📥 Tải MP4';
-      dlVideoBtn.style.cssText = `
+      // 2. Nút Chọn Chất Lượng Tải (4K / 2K / 1080p / MP3)
+      const dlQualityBtn = document.createElement('button');
+      dlQualityBtn.innerHTML = '💎 Chọn Tải 4K/HD ▼';
+      dlQualityBtn.style.cssText = `
         background: rgba(255, 255, 255, 0.12);
-        color: #FFFFFF;
-        font-weight: 600;
+        color: #00F2FE;
+        font-weight: 700;
         font-size: 11px;
         padding: 6px 12px;
         border-radius: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(0, 242, 254, 0.4);
         cursor: pointer;
+        transition: background 0.15s ease;
       `;
-      dlVideoBtn.onclick = async (e) => {
+
+      // Menu Dropdown Chọn Chất Lượng
+      const qualityMenu = document.createElement('div');
+      qualityMenu.style.cssText = `
+        position: absolute;
+        top: 42px;
+        right: 0;
+        background: rgba(10, 15, 26, 0.96);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(0, 242, 254, 0.35);
+        border-radius: 12px;
+        padding: 8px;
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 180px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+        z-index: 1000000;
+      `;
+
+      let isMenuOpen = false;
+      let cachedData = null;
+
+      dlQualityBtn.onclick = async (e) => {
         e.stopPropagation();
-        dlVideoBtn.innerHTML = '⏳ Đang lấy...';
+        if (isMenuOpen) {
+          qualityMenu.style.display = 'none';
+          isMenuOpen = false;
+          return;
+        }
+
+        qualityMenu.innerHTML = '<div style="color:#aaa;font-size:11px;padding:6px;text-align:center;">⏳ Đang quét chất lượng video...</div>';
+        qualityMenu.style.display = 'flex';
+        isMenuOpen = true;
+
         try {
-          const res = await fetch('http://localhost:5000/api/extract', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: pageUrl })
+          if (!cachedData) {
+            const res = await fetch('http://localhost:5000/api/extract', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: pageUrl })
+            });
+            const json = await res.json();
+            if (!json.ok) throw new Error(json.error);
+            cachedData = json.data;
+          }
+
+          qualityMenu.innerHTML = '';
+          const qualities = cachedData.qualities || [{ label: '1080p (Full HD)', url: cachedData.videoUrl }];
+
+          qualities.forEach(q => {
+            const item = document.createElement('a');
+            item.href = `http://localhost:5000/api/proxy-media?url=${encodeURIComponent(q.url)}&download=1&filename=${encodeURIComponent((title || 'video').slice(0, 30) + `_${q.label.replace(/[^\w]/g, '_')}.mp4`)}`;
+            item.target = '_blank';
+            item.innerHTML = `<span>📥 ${q.label}</span> <span style="opacity:0.6;font-size:10px;">${q.resolution || ''}</span>`;
+            item.style.cssText = `
+              color: #fff;
+              font-size: 11px;
+              font-weight: 600;
+              text-decoration: none;
+              padding: 6px 10px;
+              border-radius: 6px;
+              background: rgba(255,255,255,0.06);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              transition: background 0.15s ease;
+            `;
+            item.onmouseenter = () => { item.style.background = 'rgba(0, 242, 254, 0.2)'; };
+            item.onmouseleave = () => { item.style.background = 'rgba(255,255,255,0.06)'; };
+            item.onclick = (e) => {
+              e.stopPropagation();
+              qualityMenu.style.display = 'none';
+              isMenuOpen = false;
+            };
+            qualityMenu.appendChild(item);
           });
-          const data = await res.json();
-          if (data.videoUrl) {
-            const dlUrl = `http://localhost:5000/api/proxy-media?url=${encodeURIComponent(data.videoUrl)}&download=1&filename=${encodeURIComponent((title || 'youtube_video').slice(0, 40) + '.mp4')}`;
-            window.open(dlUrl, '_blank');
+
+          // Thêm nút Audio MP3
+          if (cachedData.musicUrl || cachedData.videoUrl) {
+            const audioItem = document.createElement('a');
+            audioItem.href = `http://localhost:5000/api/proxy-media?url=${encodeURIComponent(cachedData.musicUrl || cachedData.videoUrl)}&download=1&filename=${encodeURIComponent((title || 'audio').slice(0, 30) + '.mp3')}`;
+            audioItem.target = '_blank';
+            audioItem.innerHTML = '<span>🎵 Tải Audio MP3</span>';
+            audioItem.style.cssText = `
+              color: #FFE500;
+              font-size: 11px;
+              font-weight: 700;
+              text-decoration: none;
+              padding: 6px 10px;
+              border-radius: 6px;
+              background: rgba(255, 229, 0, 0.1);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            `;
+            audioItem.onclick = (e) => {
+              e.stopPropagation();
+              qualityMenu.style.display = 'none';
+              isMenuOpen = false;
+            };
+            qualityMenu.appendChild(audioItem);
           }
         } catch (err) {
-          alert('Vui lòng bật Server DUZKVIDEOTOOL tại http://localhost:5000');
-        } finally {
-          dlVideoBtn.innerHTML = '📥 Tải MP4';
+          qualityMenu.innerHTML = `<div style="color:#F87171;font-size:11px;padding:6px;">⚠️ Lỗi: ${err.message}<br/>Hãy bật Server DUZK tại port 5000</div>`;
         }
       };
 
-      toolbar.appendChild(studioBtn);
-      toolbar.appendChild(dlVideoBtn);
-
-      if (parent.style) {
-        if (getComputedStyle(parent).position === 'static') {
-          parent.style.position = 'relative';
+      // Đóng menu khi click ra ngoài
+      document.addEventListener('click', (e) => {
+        if (!toolbar.contains(e.target)) {
+          qualityMenu.style.display = 'none';
+          isMenuOpen = false;
         }
+      });
+
+      toolbar.appendChild(studioBtn);
+      toolbar.appendChild(dlQualityBtn);
+      toolbar.appendChild(qualityMenu);
+
+      if (parent.style && getComputedStyle(parent).position === 'static') {
+        parent.style.position = 'relative';
       }
       parent.appendChild(toolbar);
     }

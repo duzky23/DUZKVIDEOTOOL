@@ -37,7 +37,7 @@ export default defineContentScript({
         display: flex;
         align-items: center;
         gap: 8px;
-        background: rgba(18, 18, 18, 0.88);
+        background: rgba(18, 18, 18, 0.92);
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
         padding: 6px 12px;
@@ -69,42 +69,125 @@ export default defineContentScript({
         window.open(studioUrl, '_blank');
       };
 
-      // 2. Nút Tải Không Logo
+      // 2. Download Quality Button & Menu
       const dlBtn = document.createElement('button');
-      dlBtn.innerHTML = '📥 Tải HD';
+      dlBtn.innerHTML = '💎 Tải HD/MP3 ▼';
       dlBtn.style.cssText = `
         background: rgba(255, 255, 255, 0.12);
         color: #FFFFFF;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 11px;
         padding: 6px 12px;
         border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.2);
         cursor: pointer;
       `;
+
+      const qualityMenu = document.createElement('div');
+      qualityMenu.style.cssText = `
+        position: absolute;
+        top: 42px;
+        right: 0;
+        background: rgba(18, 18, 18, 0.96);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(254, 44, 85, 0.4);
+        border-radius: 12px;
+        padding: 8px;
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 180px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+        z-index: 1000000;
+      `;
+
+      let isMenuOpen = false;
+      let cachedData = null;
+
       dlBtn.onclick = async (e) => {
         e.stopPropagation();
-        dlBtn.innerHTML = '⏳ Đang lấy...';
+        if (isMenuOpen) {
+          qualityMenu.style.display = 'none';
+          isMenuOpen = false;
+          return;
+        }
+
+        qualityMenu.innerHTML = '<div style="color:#aaa;font-size:11px;padding:6px;text-align:center;">⏳ Đang bóc tách...</div>';
+        qualityMenu.style.display = 'flex';
+        isMenuOpen = true;
+
         try {
-          const res = await fetch('http://localhost:5000/api/extract', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: pageUrl })
-          });
-          const data = await res.json();
-          if (data.videoUrl) {
-            const dlUrl = `http://localhost:5000/api/proxy-media?url=${encodeURIComponent(data.videoUrl)}&download=1&filename=${encodeURIComponent((title || 'tiktok_video').slice(0, 40) + '.mp4')}`;
-            window.open(dlUrl, '_blank');
+          if (!cachedData) {
+            const res = await fetch('http://localhost:5000/api/extract', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: pageUrl })
+            });
+            const json = await res.json();
+            if (!json.ok) throw new Error(json.error);
+            cachedData = json.data;
+          }
+
+          qualityMenu.innerHTML = '';
+          const cleanTitle = (title || 'tiktok_video').replace(/[/\\?%*:|"<>]/g, '_').slice(0, 40);
+
+          if (cachedData.videoUrl) {
+            const vidItem = document.createElement('a');
+            vidItem.href = `http://localhost:5000/api/proxy-media?url=${encodeURIComponent(cachedData.videoUrl)}&download=1&filename=${encodeURIComponent(cleanTitle + '.mp4')}`;
+            vidItem.target = '_blank';
+            vidItem.innerHTML = '<span>📥 Tải Video Không Logo HD</span>';
+            vidItem.style.cssText = `
+              color: #00F2FE;
+              font-size: 11px;
+              font-weight: 700;
+              text-decoration: none;
+              padding: 6px 10px;
+              border-radius: 6px;
+              background: rgba(0, 242, 254, 0.1);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            `;
+            vidItem.onclick = (e) => { e.stopPropagation(); qualityMenu.style.display = 'none'; isMenuOpen = false; };
+            qualityMenu.appendChild(vidItem);
+          }
+
+          if (cachedData.musicUrl) {
+            const audioItem = document.createElement('a');
+            audioItem.href = `http://localhost:5000/api/proxy-media?url=${encodeURIComponent(cachedData.musicUrl)}&download=1&filename=${encodeURIComponent(cleanTitle + '_audio.mp3')}`;
+            audioItem.target = '_blank';
+            audioItem.innerHTML = '<span>🎵 Tải Audio MP3 Gốc</span>';
+            audioItem.style.cssText = `
+              color: #FFE500;
+              font-size: 11px;
+              font-weight: 700;
+              text-decoration: none;
+              padding: 6px 10px;
+              border-radius: 6px;
+              background: rgba(255, 229, 0, 0.1);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            `;
+            audioItem.onclick = (e) => { e.stopPropagation(); qualityMenu.style.display = 'none'; isMenuOpen = false; };
+            qualityMenu.appendChild(audioItem);
           }
         } catch (err) {
-          alert('Vui lòng bật Server DUZKVIDEOTOOL tại http://localhost:5000');
-        } finally {
-          dlBtn.innerHTML = '📥 Tải HD';
+          qualityMenu.innerHTML = `<div style="color:#F87171;font-size:11px;padding:6px;">⚠️ Lỗi: ${err.message}</div>`;
         }
       };
 
+      document.addEventListener('click', (e) => {
+        if (!toolbar.contains(e.target)) {
+          qualityMenu.style.display = 'none';
+          isMenuOpen = false;
+        }
+      });
+
       toolbar.appendChild(studioBtn);
       toolbar.appendChild(dlBtn);
+      toolbar.appendChild(qualityMenu);
 
       if (parent.style && getComputedStyle(parent).position === 'static') {
         parent.style.position = 'relative';

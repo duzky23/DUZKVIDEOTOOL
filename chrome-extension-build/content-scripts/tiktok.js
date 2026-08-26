@@ -6,7 +6,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        background: rgba(18, 18, 18, 0.88);
+        background: rgba(18, 18, 18, 0.92);
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
         padding: 6px 12px;
@@ -24,13 +24,51 @@
         border: none;
         cursor: pointer;
         transition: transform 0.15s ease;
-      `,a.onmouseenter=()=>{a.style.transform=`scale(1.05)`},a.onmouseleave=()=>{a.style.transform=`scale(1.0)`},a.onclick=e=>{e.stopPropagation();let n=`http://localhost:5000/?url=${encodeURIComponent(t)}&autoExtract=1`;window.open(n,`_blank`)};let o=document.createElement(`button`);o.innerHTML=`📥 Tải HD`,o.style.cssText=`
+      `,a.onmouseenter=()=>{a.style.transform=`scale(1.05)`},a.onmouseleave=()=>{a.style.transform=`scale(1.0)`},a.onclick=e=>{e.stopPropagation();let n=`http://localhost:5000/?url=${encodeURIComponent(t)}&autoExtract=1`;window.open(n,`_blank`)};let o=document.createElement(`button`);o.innerHTML=`💎 Tải HD/MP3 ▼`,o.style.cssText=`
         background: rgba(255, 255, 255, 0.12);
         color: #FFFFFF;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 11px;
         padding: 6px 12px;
         border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.2);
         cursor: pointer;
-      `,o.onclick=async e=>{e.stopPropagation(),o.innerHTML=`⏳ Đang lấy...`;try{let e=await(await fetch(`http://localhost:5000/api/extract`,{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify({url:t})})).json();if(e.videoUrl){let t=`http://localhost:5000/api/proxy-media?url=${encodeURIComponent(e.videoUrl)}&download=1&filename=${encodeURIComponent((n||`tiktok_video`).slice(0,40)+`.mp4`)}`;window.open(t,`_blank`)}}catch{alert(`Vui lòng bật Server DUZKVIDEOTOOL tại http://localhost:5000`)}finally{o.innerHTML=`📥 Tải HD`}},i.appendChild(a),i.appendChild(o),e.style&&getComputedStyle(e).position===`static`&&(e.style.position=`relative`),e.appendChild(i)}setInterval(t,1e3)}}),n={debug:(...e)=>([...e],void 0),log:(...e)=>([...e],void 0),warn:(...e)=>([...e],void 0),error:(...e)=>([...e],void 0)};return(async()=>{try{return await t.main()}catch(e){throw n.error(`The content script "tiktok" crashed on startup!`,e),e}})()})();
+      `;let s=document.createElement(`div`);s.style.cssText=`
+        position: absolute;
+        top: 42px;
+        right: 0;
+        background: rgba(18, 18, 18, 0.96);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(254, 44, 85, 0.4);
+        border-radius: 12px;
+        padding: 8px;
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 180px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+        z-index: 1000000;
+      `;let c=!1,l=null;o.onclick=async e=>{if(e.stopPropagation(),c){s.style.display=`none`,c=!1;return}s.innerHTML=`<div style="color:#aaa;font-size:11px;padding:6px;text-align:center;">⏳ Đang bóc tách...</div>`,s.style.display=`flex`,c=!0;try{if(!l){let e=await(await fetch(`http://localhost:5000/api/extract`,{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify({url:t})})).json();if(!e.ok)throw Error(e.error);l=e.data}s.innerHTML=``;let e=(n||`tiktok_video`).replace(/[/\\?%*:|"<>]/g,`_`).slice(0,40);if(l.videoUrl){let t=document.createElement(`a`);t.href=`http://localhost:5000/api/proxy-media?url=${encodeURIComponent(l.videoUrl)}&download=1&filename=${encodeURIComponent(e+`.mp4`)}`,t.target=`_blank`,t.innerHTML=`<span>📥 Tải Video Không Logo HD</span>`,t.style.cssText=`
+              color: #00F2FE;
+              font-size: 11px;
+              font-weight: 700;
+              text-decoration: none;
+              padding: 6px 10px;
+              border-radius: 6px;
+              background: rgba(0, 242, 254, 0.1);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            `,t.onclick=e=>{e.stopPropagation(),s.style.display=`none`,c=!1},s.appendChild(t)}if(l.musicUrl){let t=document.createElement(`a`);t.href=`http://localhost:5000/api/proxy-media?url=${encodeURIComponent(l.musicUrl)}&download=1&filename=${encodeURIComponent(e+`_audio.mp3`)}`,t.target=`_blank`,t.innerHTML=`<span>🎵 Tải Audio MP3 Gốc</span>`,t.style.cssText=`
+              color: #FFE500;
+              font-size: 11px;
+              font-weight: 700;
+              text-decoration: none;
+              padding: 6px 10px;
+              border-radius: 6px;
+              background: rgba(255, 229, 0, 0.1);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            `,t.onclick=e=>{e.stopPropagation(),s.style.display=`none`,c=!1},s.appendChild(t)}}catch(e){s.innerHTML=`<div style="color:#F87171;font-size:11px;padding:6px;">⚠️ Lỗi: ${e.message}</div>`}},document.addEventListener(`click`,e=>{i.contains(e.target)||(s.style.display=`none`,c=!1)}),i.appendChild(a),i.appendChild(o),i.appendChild(s),e.style&&getComputedStyle(e).position===`static`&&(e.style.position=`relative`),e.appendChild(i)}setInterval(t,1e3)}}),n={debug:(...e)=>([...e],void 0),log:(...e)=>([...e],void 0),warn:(...e)=>([...e],void 0),error:(...e)=>([...e],void 0)};return(async()=>{try{return await t.main()}catch(e){throw n.error(`The content script "tiktok" crashed on startup!`,e),e}})()})();
