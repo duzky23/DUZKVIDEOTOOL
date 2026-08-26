@@ -18,6 +18,7 @@ import { generateDubbingScript } from './services/geminiService.js';
 
 import { downloadMedia, generateSrtFile, mixDubbedVideo, generateVideoCover, getRefererForUrl } from './services/ffmpegService.js';
 import { extractSubtitlesWithVideOCR, extractSubtitlesWithCapCutASR, extractVideoFrames, extractAndTranslateHardcodedSubtitles } from './services/ocrService.js';
+import { createCapcutDraft, getCapCutDraftFolder } from './services/capcutDraftService.js';
 
 dotenv.config();
 
@@ -428,6 +429,47 @@ app.delete('/api/history/:id', (req, res) => {
   const list = getHistory().filter(item => item.id !== id);
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(list, null, 2), 'utf8');
   res.json({ ok: true });
+});
+
+// 9. Export direct CapCut PC Project Draft
+app.post('/api/export-capcut-draft', async (req, res) => {
+  try {
+    const { videoUrl, title = 'DUZK_CapCut_Project', subtitles = [], voiceId = 'vi-VN-HoaiMyNeural', enableDubbingVoice = true } = req.body;
+    if (!videoUrl) {
+      return res.status(400).json({ ok: false, error: 'Thiếu đường dẫn video URL' });
+    }
+
+    const taskId = uuidv4();
+    const taskDir = path.join(TEMP_DIR, `draft_${taskId.slice(0, 8)}`);
+    fs.mkdirSync(taskDir, { recursive: true });
+
+    // Download video to local temp
+    const localVideoPath = path.join(taskDir, 'source.mp4');
+    await downloadMedia(videoUrl, localVideoPath);
+
+    // Synthesize TTS Audio if subtitles & voice enabled
+    let localAudioPath = '';
+    if (enableDubbingVoice && subtitles && subtitles.length > 0) {
+      localAudioPath = path.join(taskDir, 'ai_voice.mp3');
+      try {
+        await synthesizeTimeAlignedSegments(subtitles, localAudioPath, { voiceId, rate: '+0%', pitch: '+0Hz' });
+      } catch (e) {
+        console.warn('TTS Synthesis for CapCut Draft warning:', e.message);
+      }
+    }
+
+    const draftResult = await createCapcutDraft({
+      projectName: title,
+      videoPath: localVideoPath,
+      subtitles,
+      audioPath: localAudioPath
+    });
+
+    res.json({ ok: true, data: draftResult });
+  } catch (err) {
+    console.error('CapCut Draft Export error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // Start Server

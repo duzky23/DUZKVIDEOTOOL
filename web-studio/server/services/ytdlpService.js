@@ -28,7 +28,7 @@ export async function getYtDlpInfo(url) {
       url
     ];
 
-    execFile(ytDlpPath, args, { maxBuffer: 10 * 1024 * 1024, timeout: 30000 }, (error, stdout, stderr) => {
+    execFile(ytDlpPath, args, { maxBuffer: 50 * 1024 * 1024, timeout: 60000 }, (error, stdout, stderr) => {
       if (error) {
         return reject(new Error(`yt-dlp metadata extraction failed: ${stderr || error.message}`));
       }
