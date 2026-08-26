@@ -120,18 +120,49 @@ export const BatchDownloader: React.FC = () => {
                   </div>
                 </div>
 
-                {r.status === 'success' && r.data?.videoUrl && (
-                  <a
-                    href={r.data.videoUrl}
-                    download="video.mp4"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-secondary"
-                    style={{ padding: '6px 14px', fontSize: '12px', flexShrink: 0 }}
-                  >
-                    <Download size={14} />
-                    <span>Tải Video</span>
-                  </a>
+                {r.status === 'success' && r.data && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
+                    {r.data.qualities && r.data.qualities.length > 0 ? (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <select
+                          defaultValue={r.data.qualities[0]?.url || r.data.videoUrl}
+                          onChange={(e) => {
+                            r.data.selectedUrl = e.target.value;
+                            setResults([...results]);
+                          }}
+                          className="select-field"
+                          style={{ padding: '4px 8px', fontSize: '11px', fontWeight: 700, borderRadius: '6px', background: '#0F172A', color: '#00F2FE', border: '1px solid #00F2FE' }}
+                        >
+                          {r.data.qualities.map((q: any, qIdx: number) => (
+                            <option key={qIdx} value={q.url}>
+                              {q.label} {q.resolution ? `(${q.resolution})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <a
+                          href={`/api/proxy-media?url=${encodeURIComponent(r.data.selectedUrl || r.data.videoUrl)}&download=1&filename=${encodeURIComponent((r.data.title || 'video').slice(0, 30) + '.mp4')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-primary"
+                          style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 700, textDecoration: 'none' }}
+                        >
+                          <Download size={13} />
+                          <span>Tải</span>
+                        </a>
+                      </div>
+                    ) : (
+                      <a
+                        href={`/api/proxy-media?url=${encodeURIComponent(r.data.videoUrl)}&download=1&filename=${encodeURIComponent((r.data.title || 'video').slice(0, 30) + '.mp4')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-primary"
+                        style={{ padding: '6px 14px', fontSize: '12px', flexShrink: 0, textDecoration: 'none' }}
+                      >
+                        <Download size={14} />
+                        <span>Tải HD</span>
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
             ))}

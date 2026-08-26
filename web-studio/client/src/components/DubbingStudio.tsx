@@ -799,59 +799,125 @@ export const DubbingStudio: React.FC<DubbingStudioProps> = ({ apiKey, openSettin
                 {/* Multi-Resolution & 4K Quality Selector Card */}
                 <div style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  background: 'linear-gradient(90deg, rgba(0, 242, 254, 0.08) 0%, rgba(254, 44, 85, 0.08) 100%)',
-                  padding: '10px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid rgba(0, 242, 254, 0.25)',
-                  marginTop: '12px',
-                  flexWrap: 'wrap',
-                  gap: '10px'
+                  flexDirection: 'column',
+                  gap: '12px',
+                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(26, 32, 44, 0.9) 100%)',
+                  padding: '14px 16px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid rgba(0, 242, 254, 0.3)',
+                  marginTop: '14px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.35)'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-cyan)' }}>
-                      💎 Chất Lượng Video:
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-cyan)' }}>
+                        💎 Chọn Độ Phân Giải Xem & Dựng:
+                      </span>
+                      {videoData.qualities && videoData.qualities.length > 0 ? (
+                        <select
+                          value={videoData.videoUrl}
+                          onChange={(e) => {
+                            const selectedUrl = e.target.value;
+                            setVideoData({ ...videoData, videoUrl: selectedUrl });
+                          }}
+                          className="select-field"
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            borderRadius: '8px',
+                            background: '#090D16',
+                            color: '#00F2FE',
+                            border: '1px solid #00F2FE',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {videoData.qualities.map((q: any, idx: number) => (
+                            <option key={idx} value={q.url}>
+                              {q.label} {q.resolution ? `(${q.resolution})` : ''} {q.fps > 30 ? `· ${q.fps}fps` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="badge badge-cyan" style={{ fontSize: '11px' }}>🌟 1080p (Full HD Gốc)</span>
+                      )}
+                    </div>
+
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Tự động chọn chất lượng cao nhất
                     </span>
-                    {videoData.qualities && videoData.qualities.length > 0 ? (
-                      <select
-                        value={videoData.videoUrl}
-                        onChange={(e) => {
-                          const selectedUrl = e.target.value;
-                          setVideoData({ ...videoData, videoUrl: selectedUrl });
-                        }}
-                        className="select-field"
-                        style={{
-                          padding: '5px 10px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          borderRadius: '6px',
-                          background: '#0F172A',
-                          color: '#00F2FE',
-                          border: '1px solid #00F2FE',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {videoData.qualities.map((q: any, idx: number) => (
-                          <option key={idx} value={q.url}>
-                            {q.label} {q.resolution ? `(${q.resolution})` : ''} {q.fps > 30 ? `· ${q.fps}fps` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="badge badge-cyan" style={{ fontSize: '11px' }}>🌟 1080p (Full HD Gốc)</span>
-                    )}
                   </div>
 
-                  <a
-                    href={`/api/proxy-media?url=${encodeURIComponent(videoData.videoUrl)}&download=1&filename=${encodeURIComponent((videoData.title || 'video').slice(0, 40) + '.mp4')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-primary"
-                    style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 800, textDecoration: 'none' }}
-                  >
-                    📥 Tải Video Không Logo
-                  </a>
+                  {/* Direct Download Multi-Quality Quick Buttons Grid */}
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                      📥 Tùy chọn tải trực tiếp theo từng mức chất lượng:
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {videoData.qualities && videoData.qualities.length > 0 ? (
+                        videoData.qualities.map((q: any, idx: number) => (
+                          <a
+                            key={idx}
+                            href={`/api/proxy-media?url=${encodeURIComponent(q.url)}&download=1&filename=${encodeURIComponent((videoData.title || 'video').slice(0, 30) + `_${q.label.replace(/[^\w]/g, '_')}.mp4`)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`btn ${idx === 0 ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              textDecoration: 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                            title={`Tải độ phân giải ${q.label}`}
+                          >
+                            <span>📥 Tải {q.label}</span>
+                            {q.resolution && <span style={{ opacity: 0.75, fontSize: '10px' }}>({q.resolution})</span>}
+                          </a>
+                        ))
+                      ) : (
+                        <a
+                          href={`/api/proxy-media?url=${encodeURIComponent(videoData.videoUrl)}&download=1&filename=${encodeURIComponent((videoData.title || 'video').slice(0, 40) + '.mp4')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-primary"
+                          style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 800, textDecoration: 'none' }}
+                        >
+                          📥 Tải Video Không Logo HD
+                        </a>
+                      )}
+
+                      {/* Download MP3 Audio */}
+                      {videoData.musicUrl && (
+                        <a
+                          href={`/api/proxy-media?url=${encodeURIComponent(videoData.musicUrl)}&download=1&filename=${encodeURIComponent((videoData.title || 'audio').slice(0, 30) + '_audio.mp3')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 700, textDecoration: 'none', borderColor: 'rgba(255, 255, 255, 0.2)' }}
+                          title="Tải riêng file âm thanh gốc MP3"
+                        >
+                          🎵 Tải Audio MP3
+                        </a>
+                      )}
+
+                      {/* Download Cover Photo */}
+                      {videoData.coverUrl && (
+                        <a
+                          href={`/api/proxy-media?url=${encodeURIComponent(videoData.coverUrl)}&download=1&filename=${encodeURIComponent((videoData.title || 'cover').slice(0, 30) + '_cover.jpg')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 700, textDecoration: 'none', borderColor: 'rgba(255, 255, 255, 0.2)' }}
+                          title="Tải ảnh bìa cover HD"
+                        >
+                          🖼️ Tải Ảnh Bìa HD
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
