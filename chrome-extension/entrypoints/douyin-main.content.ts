@@ -309,52 +309,54 @@ export default defineContentScript({
                 ));
             },
             A = () => {
-              const seenAwemeOnPage = new Set();
-              const n = location.pathname.includes("/user/")
-                  ? 'a[href^="/video/"]'
-                  : 'a[href*="/video/"]';
-              
-              // Prioritize active video elements and top-level cards
-              const videos = Array.from(document.querySelectorAll("video"));
-              const links = Array.from(document.querySelectorAll(n));
-              const t = [...videos, ...links];
-
-              for (const e of t) {
-                // Skip child elements if parent container is already tagged
-                if (e.parentElement?.closest(`[${a}]`)) continue;
-
-                const u = x(e),
-                  s = u
-                    ? N(u, e)
-                    : e instanceof HTMLAnchorElement
-                      ? M(e)
-                      : void 0;
-                if (!s || !s.id) continue;
-
-                // Pick the highest sensible card or player container to tag
-                const targetHost = e.closest('[data-e2e="feed-active-video"], .xgplayer-container, li[class*="item"], div[class*="card"]') || e.parentElement || e;
-
-                if (seenAwemeOnPage.has(s.id) && !location.pathname.includes("/user/")) {
-                  // In single video view or feed, don't tag multiple child wrappers
-                  continue;
+              if (location.pathname.includes("/user/")) {
+                // Channel / User Profile Grid Mode: Tag individual video cards
+                const links = Array.from(document.querySelectorAll('a[href^="/video/"], a[href*="/video/"]'));
+                for (const e of links) {
+                  const u = x(e),
+                    s = u
+                      ? N(u, e)
+                      : e instanceof HTMLAnchorElement
+                        ? M(e)
+                        : void 0;
+                  if (!s || !s.id) continue;
+                  const targetHost = e.closest('li[class*="item"], div[class*="card"]') || e;
+                  const o = targetHost.getAttribute(a);
+                  let r;
+                  try { r = o ? JSON.parse(o) : void 0; } catch { r = void 0; }
+                  if (C.get(targetHost) !== s.id || (s.mediaUrl && (!r || !r.mediaUrl))) {
+                    C.set(targetHost, s.id);
+                    targetHost.setAttribute(a, JSON.stringify(s));
+                    targetHost.dispatchEvent(new Event("social-intelligence:aweme-ready", { bubbles: !0 }));
+                  }
                 }
-                seenAwemeOnPage.add(s.id);
+              } else {
+                // Single Video or Feed Mode: Only tag the ONE active player container
+                const activeContainer = document.querySelector('[data-e2e="feed-active-video"]') || 
+                                        document.querySelector('.slider-video') || 
+                                        document.querySelector('.xgplayer-container') || 
+                                        document.body;
+                if (!activeContainer) return;
 
-                const o = targetHost.getAttribute(a);
+                const activeVideo = activeContainer.querySelector('video') || document.querySelector('video');
+                if (!activeVideo) return;
+
+                const u = x(activeVideo) || x(activeContainer);
+                const s = u ? N(u, activeVideo) : void 0;
+                if (!s || !s.id) return;
+
+                // Clean any rogue tags on sub-elements
+                document.querySelectorAll(`[${a}]`).forEach(el => {
+                  if (el !== activeContainer) el.removeAttribute(a);
+                });
+
+                const o = activeContainer.getAttribute(a);
                 let r;
-                try {
-                  r = o ? JSON.parse(o) : void 0;
-                } catch {
-                  r = void 0;
-                }
-                if (C.get(targetHost) !== s.id || (s.mediaUrl && (!r || !r.mediaUrl))) {
-                  C.set(targetHost, s.id);
-                  targetHost.setAttribute(a, JSON.stringify(s));
-                  targetHost.dispatchEvent(
-                    new Event("social-intelligence:aweme-ready", {
-                      bubbles: !0,
-                    }),
-                  );
+                try { r = o ? JSON.parse(o) : void 0; } catch { r = void 0; }
+                if (C.get(activeContainer) !== s.id || (s.mediaUrl && (!r || !r.mediaUrl))) {
+                  C.set(activeContainer, s.id);
+                  activeContainer.setAttribute(a, JSON.stringify(s));
+                  activeContainer.dispatchEvent(new Event("social-intelligence:aweme-ready", { bubbles: !0 }));
                 }
               }
               W();

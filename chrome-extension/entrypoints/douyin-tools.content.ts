@@ -229,45 +229,37 @@ export default defineContentScript({
                 var z, Y;
                 if (!n || !i || !i.id) return;
 
-                // Enforce strictly 1 toolbar per aweme ID in feed / single video
-                const existing = document.querySelector(`.social-intelligence-video-actions[data-aweme-id="${i.id}"]`);
-                if (existing && existing.parentElement === n) return;
-                if (existing && !location.pathname.includes("/user/")) {
-                  return;
+                if (!location.pathname.includes("/user/")) {
+                  // In Single Video or Feed Mode: Strictly allow only ONE floating toolbar on the active screen
+                  const existingList = document.querySelectorAll(".social-intelligence-video-actions");
+                  if (existingList.length > 0) {
+                    const currentOne = existingList[0];
+                    if (currentOne.dataset.awemeId === i.id && currentOne.parentElement === n) {
+                      return; // Already attached to the right active container
+                    }
+                    // Remove all old/stale toolbars
+                    existingList.forEach(el => el.remove());
+                  }
+                } else {
+                  // In Channel / User Profile Grid Mode: 1 toolbar per card
+                  const o = u.get(n);
+                  if ((o == null ? void 0 : o.dataset.awemeId) === i.id) return;
+                  o == null || o.remove();
                 }
-
-                const o = u.get(n);
-                if ((o == null ? void 0 : o.dataset.awemeId) === i.id) return;
-                o == null || o.remove();
 
                 const l = n instanceof HTMLVideoElement ? n.parentElement : n;
                 if (!(l instanceof HTMLElement)) return;
-                if (l.parentElement?.closest('.social-intelligence-media-host')) {
-                  return;
+
+                if (getComputedStyle(l).position === "static") {
+                  l.style.position = "relative";
                 }
 
-                if (
-                  (getComputedStyle(l).position === "static" &&
-                    (l.style.position = "relative"),
-                  !document.getElementById(
-                    "social-intelligence-overlay-visibility",
-                  ))
-                ) {
-                  const y = document.createElement("style");
-                  ((y.id = "social-intelligence-overlay-visibility"),
-                    (y.textContent = `
-          .social-intelligence-video-actions{opacity:.18;transform:translateY(-2px);transition:opacity .18s ease,transform .18s ease}
-          .social-intelligence-media-host:hover>.social-intelligence-video-actions,
-          .social-intelligence-video-actions:hover{opacity:1;transform:translateY(0)}
-        `),
-                    document.documentElement.appendChild(y));
-                }
                 l.classList.add("social-intelligence-media-host");
                 const d = document.createElement("div");
-                ((d.className = "social-intelligence-video-actions"),
-                  (d.dataset.awemeId = i.id),
-                  (d.style.cssText =
-                    "position:absolute;top:16px;right:16px;z-index:2147483646;pointer-events:auto;display:flex;flex-direction:row;align-items:center;gap:8px;background:rgba(0,0,0,0.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:6px 10px;border-radius:30px;border:1px solid rgba(255,255,255,0.25);box-shadow:0 4px 20px rgba(0,0,0,0.6);"));
+                d.className = "social-intelligence-video-actions";
+                d.dataset.awemeId = i.id;
+                d.style.cssText =
+                  "position:absolute;top:16px;right:16px;z-index:2147483646;pointer-events:auto;display:flex;flex-direction:row;align-items:center;gap:8px;background:rgba(10,15,26,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:6px 12px;border-radius:30px;border:1px solid rgba(255,255,255,0.25);box-shadow:0 6px 24px rgba(0,0,0,0.7);";
                 const g = d.attachShadow({ mode: "open" });
                 ((g.innerHTML = `
         <style>
