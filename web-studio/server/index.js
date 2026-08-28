@@ -586,9 +586,17 @@ app.post('/api/ai/marketing-video', async (req, res) => {
   }
 });
 
+// SPA Fallback for client
+if (fs.existsSync(CLIENT_DIST)) {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+  });
+}
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`🚀 DUZKVIDEOTOOL Platform Server running at http://localhost:${PORT}`);
 });
+
 
 

@@ -1,11 +1,27 @@
-import { GoogleGenAI } from '@google/genai';
-import { synthesizeTimeAlignedSegments } from './edgeTts.js';
+import { fetchClient } from './extractor.js';
+import { ACTIVE_GEMINI_MODELS } from './ocrService.js';
 import { createCapcutDraft } from './capcutDraftService.js';
 import path from 'path';
 import fs from 'fs';
 
+function extractJson(raw) {
+  if (!raw) return null;
+  const cleaned = raw.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch (err) {}
+    }
+  }
+  return null;
+}
+
 /**
- * Tự động tạo kịch bản bán hàng chuẩn AIDA bằng Gemini AI
+ * Tự động tạo kịch bản bán hàng chuẩn AIDA bằng Gemini AI (REST API)
  */
 export async function generateProductMarketingScript({
   productName = '',
@@ -17,10 +33,8 @@ export async function generateProductMarketingScript({
 }) {
   const geminiKey = apiKey || process.env.GEMINI_API_KEY;
   if (!geminiKey) {
-    throw new Error('Vui lòng nhập Gemini API Key để tạo kịch bản Marketing');
+    throw new Error('Vui lòng nhập Gemini API Key trong Cài đặt để tạo kịch bản Marketing');
   }
-
-  const ai = new GoogleGenAI({ apiKey: geminiKey });
 
   const prompt = `
 Bạn là Giám đốc Sáng tạo & Copywriter chuyên tạo video ngắn quảng cáo/review sản phẩm triệu view trên TikTok, Facebook Reels và YouTube Shorts.
@@ -39,7 +53,7 @@ Kịch bản cần chia thành 5 phân đoạn chuẩn AIDA với thời lượn
 4. Social Proof / Experience (18s - 26s): Trải nghiệm thực tế, cảm xúc hài lòng, đánh giá 5 sao.
 5. Call To Action (26s - 30s): Kêu gọi mua ngay, nhấn mạnh ưu đãi giảm giá / freeship.
 
-BẮT BUỘC trả về định dạng JSON thuần túy (không markdown thừa):
+BẮT BUỘC trả về định dạng JSON DUY NHẤT theo cấu trúc sau:
 {
   "title": "Tiêu đề video giật tít",
   "totalEstimatedSec": 30,
@@ -88,20 +102,36 @@ BẮT BUỘC trả về định dạng JSON thuần túy (không markdown thừa
 }
 `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json'
-    }
-  });
+  let lastError = null;
+  for (const model of ACTIVE_GEMINI_MODELS) {
+    try {
+      const res = await fetchClient({
+        url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+        method: 'POST',
+        data: {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            responseMimeType: 'application/json'
+          }
+        },
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 25000
+      });
 
-  const responseText = response.text?.trim() || '{}';
-  try {
-    return JSON.parse(responseText);
-  } catch (e) {
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
-    throw new Error('Không thể phân tích kịch bản JSON từ Gemini AI');
+      const rawText = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) throw new Error('Gemini không trả về nội dung');
+
+      const parsed = extractJson(rawText);
+      if (parsed) return parsed;
+      throw new Error('Không thể phân tích định dạng JSON từ Gemini');
+    } catch (err) {
+      lastError = err;
+      console.warn(`[Marketing Script] Model ${model} failed, trying next:`, err.response?.data?.error?.message || err.message);
+      await new Promise(r => setTimeout(r, 1000));
+    }
   }
+
+  const errMsg = lastError?.response?.data?.error?.message || lastError?.message || 'Lỗi gọi Gemini API';
+  throw new Error(`Lỗi Gemini AI: ${errMsg}`);
 }
