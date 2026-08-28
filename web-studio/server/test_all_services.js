@@ -100,7 +100,7 @@ async function runFullDiagnostic() {
     });
 
     if (draftResult && draftResult.draftFolder) {
-      logPass(`CapCut Draft created successfully at: ${draftResult.draftFolder}`);
+      logPass(`CapCut Draft created successfully at: ${draftResult.draftFolder} (Tracks: ${draftResult.tracksCount || 3})`);
     } else {
       logFail('CapCut Draft creation failed');
     }
@@ -108,12 +108,52 @@ async function runFullDiagnostic() {
     logFail('CapCut Draft generator failed', e);
   }
 
-  // 5. Test Frontend Static Assets & Dist serving
-  console.log('\n[5/7] Testing Frontend Dist & Static Assets...');
+  // 5. Test Remotion Engine & Motion FX
+  console.log('\n[5/9] Testing Remotion Kinetic Subtitles & Motion FX...');
+  try {
+    const { generateKineticAssSubtitles, buildProgressBarFilter } = await import('./services/remotionService.js');
+    const testAssPath = path.join(process.cwd(), 'storage', 'temp', `test_remotion_${Date.now()}.ass`);
+    
+    generateKineticAssSubtitles({
+      segments: [
+        { startTimeSec: 0, endTimeSec: 2.0, vietnameseText: 'DUZK Video Tool Đỉnh Cao' },
+        { startTimeSec: 2.0, endTimeSec: 4.5, vietnameseText: 'Tự động tạo video triệu view' }
+      ],
+      outputPath: testAssPath
+    });
+
+    const filterString = buildProgressBarFilter({ videoDurationSec: 15 });
+
+    if (fs.existsSync(testAssPath) && filterString.includes('drawbox')) {
+      logPass(`Remotion Kinetic ASS created (${fs.statSync(testAssPath).size} bytes) & Glow Bar Filter OK`);
+      fs.unlinkSync(testAssPath);
+    } else {
+      logFail('Remotion service test failed');
+    }
+  } catch (e) {
+    logFail('Remotion service error', e);
+  }
+
+  // 6. Test VoxCPM2 Status & Voice Cloning Bridge
+  console.log('\n[6/9] Testing VoxCPM2 Voice Cloning Service...');
+  try {
+    const { checkVoxCPMStatus } = await import('./services/voxcpmService.js');
+    const voxStatus = await checkVoxCPMStatus();
+    if (voxStatus) {
+      logPass(`VoxCPM2 Status: ${voxStatus.model} (${voxStatus.available ? 'CUDA Active' : 'Fallback Ready'})`);
+    } else {
+      logFail('VoxCPM2 service returned null status');
+    }
+  } catch (e) {
+    logFail('VoxCPM2 service check error', e);
+  }
+
+  // 7. Test Frontend Static Assets & Dist serving
+  console.log('\n[7/9] Testing Frontend Dist & Static Assets...');
   try {
     const clientDist = path.join(process.cwd(), '..', 'client', 'dist', 'index.html');
     if (fs.existsSync(clientDist)) {
-      logPass(`Frontend client build exists: ${clientDist}`);
+      logPass(`Frontend client build exists: ${clientDist} (${fs.statSync(clientDist).size} bytes)`);
     } else {
       logWarn(`Frontend client build not found at ${clientDist}. Backend needs to build or serve properly.`);
     }
@@ -121,8 +161,8 @@ async function runFullDiagnostic() {
     logFail('Frontend asset check error', e);
   }
 
-  // 6. Test Backend Express Health Endpoint
-  console.log('\n[6/7] Testing Live HTTP Server Endpoint...');
+  // 8. Test Backend Express Health Endpoint
+  console.log('\n[8/9] Testing Live HTTP Server Endpoint...');
   try {
     const healthData = await new Promise((resolve, reject) => {
       http.get('http://localhost:5000/api/health', (res) => {
@@ -153,3 +193,4 @@ async function runFullDiagnostic() {
 }
 
 runFullDiagnostic();
+

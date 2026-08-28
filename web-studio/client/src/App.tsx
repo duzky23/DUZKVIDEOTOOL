@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { DubbingStudio } from './components/DubbingStudio';
+import { MarketingStudio } from './components/MarketingStudio';
 import { BatchDownloader } from './components/BatchDownloader';
 import { VideoVault } from './components/VideoVault';
 import { SettingsModal } from './components/SettingsModal';
+import { VoiceCloningModal } from './components/VoiceCloningModal';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('studio');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isVoiceCloningOpen, setIsVoiceCloningOpen] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '');
   const [serverOnline, setServerOnline] = useState(false);
 
@@ -38,12 +41,20 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         openSettings={() => setIsSettingsOpen(true)}
+        openVoiceCloning={() => setIsVoiceCloningOpen(true)}
         serverOnline={serverOnline}
       />
 
       <main className="main-content">
         {activeTab === 'studio' && (
           <DubbingStudio
+            apiKey={apiKey}
+            openSettings={() => setIsSettingsOpen(true)}
+          />
+        )}
+
+        {activeTab === 'marketing' && (
+          <MarketingStudio
             apiKey={apiKey}
             openSettings={() => setIsSettingsOpen(true)}
           />
@@ -60,6 +71,11 @@ export default function App() {
         apiKey={apiKey}
         onSaveApiKey={handleSaveApiKey}
         serverOnline={serverOnline}
+      />
+
+      <VoiceCloningModal
+        isOpen={isVoiceCloningOpen}
+        onClose={() => setIsVoiceCloningOpen(false)}
       />
     </div>
   );

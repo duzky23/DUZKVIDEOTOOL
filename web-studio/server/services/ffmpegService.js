@@ -230,6 +230,12 @@ export async function mixDubbedVideo({
         stepIndex++;
       }
 
+      // Bottom Glowing Progress Bar (Remotion style)
+      if (options.enableProgressBar) {
+        filterParts.push(`[step${stepIndex}]drawbox=x=0:y=ih-12:w='min(iw\\, (t/30)*iw)':h=12:color=0x00F2FE@0.95:t=fill[step${stepIndex + 1}]`);
+        stepIndex++;
+      }
+
       // Subtitle burning
       if (burnSubtitles && relSrt) {
         filterParts.push(
@@ -246,6 +252,11 @@ export async function mixDubbedVideo({
       if (maskOldSubtitles) {
         filterParts.push(`[${currentLabel}]drawbox=y=ih*${finalMaskY.toFixed(3)}:h=ih*${finalMaskH.toFixed(3)}:color=black@0.85:t=fill[step1]`);
         currentLabel = 'step1';
+      }
+
+      if (options.enableProgressBar) {
+        filterParts.push(`[${currentLabel}]drawbox=x=0:y=ih-8:w='min(iw\\, (t/30)*iw)':h=8:color=0x00F2FE@0.95:t=fill[step_bar]`);
+        currentLabel = 'step_bar';
       }
 
       if (burnSubtitles && relSrt) {

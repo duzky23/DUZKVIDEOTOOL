@@ -18,7 +18,10 @@ import { generateDubbingScript } from './services/geminiService.js';
 
 import { downloadMedia, generateSrtFile, mixDubbedVideo, generateVideoCover, getRefererForUrl } from './services/ffmpegService.js';
 import { extractSubtitlesWithVideOCR, extractSubtitlesWithCapCutASR, extractVideoFrames, extractAndTranslateHardcodedSubtitles } from './services/ocrService.js';
-import { createCapcutDraft, getCapCutDraftFolder } from './services/capcutDraftService.js';
+import { createCapcutDraft, getCapCutDraftFolder, CAPCUT_TRANSITIONS } from './services/capcutDraftService.js';
+import { generateProductMarketingScript } from './services/marketingVideoService.js';
+import { checkVoxCPMStatus, cloneVoiceWithVoxCPM, designVoiceByPrompt } from './services/voxcpmService.js';
+import { generateKineticAssSubtitles, buildProgressBarFilter, buildHookCardFilter } from './services/remotionService.js';
 
 dotenv.config();
 
@@ -431,10 +434,20 @@ app.delete('/api/history/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-// 9. Export direct CapCut PC Project Draft
+// 9. Export direct CapCut PC Project Draft (Enhanced with Transitions, Text FX, and SFX)
 app.post('/api/export-capcut-draft', async (req, res) => {
   try {
-    const { videoUrl, title = 'DUZK_CapCut_Project', subtitles = [], voiceId = 'vi-VN-HoaiMyNeural', enableDubbingVoice = true } = req.body;
+    const {
+      videoUrl,
+      title = 'DUZK_CapCut_Project',
+      subtitles = [],
+      voiceId = 'vi-VN-HoaiMyNeural',
+      enableDubbingVoice = true,
+      transitionType = 'zoom_in',
+      textAnimation = 'kinetic_pop',
+      sfxList = []
+    } = req.body;
+
     if (!videoUrl) {
       return res.status(400).json({ ok: false, error: 'Thiếu đường dẫn video URL' });
     }
@@ -462,7 +475,10 @@ app.post('/api/export-capcut-draft', async (req, res) => {
       projectName: title,
       videoPath: localVideoPath,
       subtitles,
-      audioPath: localAudioPath
+      audioPath: localAudioPath,
+      transitionType,
+      textAnimation,
+      sfxList
     });
 
     res.json({ ok: true, data: draftResult });
@@ -472,8 +488,107 @@ app.post('/api/export-capcut-draft', async (req, res) => {
   }
 });
 
+// 10. VoxCPM2 Voice Hub Endpoints
+app.get('/api/voxcpm/status', async (req, res) => {
+  try {
+    const status = await checkVoxCPMStatus();
+    res.json({ ok: true, data: status });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/voxcpm/clone', async (req, res) => {
+  try {
+    const { text, referenceAudioUrl, language = 'vi', speed = 1.0, fallbackVoiceId } = req.body;
+    if (!text) return res.status(400).json({ ok: false, error: 'Thiếu nội dung văn bản' });
+
+    const outputFilename = `voxcpm_clone_${Date.now()}.mp3`;
+    const outputPath = path.join(OUTPUT_DIR, outputFilename);
+
+    let localRefPath = '';
+    if (referenceAudioUrl) {
+      localRefPath = path.join(TEMP_DIR, `ref_${Date.now()}.mp3`);
+      await downloadMedia(referenceAudioUrl, localRefPath);
+    }
+
+    const result = await cloneVoiceWithVoxCPM({
+      text,
+      referenceAudioPath: localRefPath,
+      outputPath,
+      language,
+      speed,
+      fallbackVoiceId
+    });
+
+    if (localRefPath && fs.existsSync(localRefPath)) fs.unlinkSync(localRefPath);
+
+    res.json({
+      ok: true,
+      data: {
+        engine: result.engine,
+        audioUrl: `/outputs/${outputFilename}`
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/voxcpm/design', async (req, res) => {
+  try {
+    const { text, voicePrompt, fallbackVoiceId } = req.body;
+    if (!text) return res.status(400).json({ ok: false, error: 'Thiếu nội dung văn bản' });
+
+    const outputFilename = `voxcpm_design_${Date.now()}.mp3`;
+    const outputPath = path.join(OUTPUT_DIR, outputFilename);
+
+    const result = await designVoiceByPrompt({
+      text,
+      voicePrompt,
+      outputPath,
+      fallbackVoiceId
+    });
+
+    res.json({
+      ok: true,
+      data: {
+        engine: result.engine,
+        audioUrl: `/outputs/${outputFilename}`
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// 11. AI Product Marketing / Review Video Generator
+app.post('/api/ai/marketing-video', async (req, res) => {
+  try {
+    const { productName, productCategory, keyFeatures, targetAudience, tone, apiKey } = req.body;
+    if (!productName) {
+      return res.status(400).json({ ok: false, error: 'Vui lòng nhập tên sản phẩm' });
+    }
+
+    const script = await generateProductMarketingScript({
+      productName,
+      productCategory,
+      keyFeatures,
+      targetAudience,
+      tone,
+      apiKey
+    });
+
+    res.json({ ok: true, data: script });
+  } catch (err) {
+    console.error('Marketing Video Generation error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`🚀 DUZKVIDEOTOOL Platform Server running at http://localhost:${PORT}`);
 });
+
 

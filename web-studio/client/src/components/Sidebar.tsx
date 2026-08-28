@@ -8,13 +8,16 @@ import {
   Radio,
   ExternalLink,
   ShieldCheck,
-  Cpu
+  Cpu,
+  ShoppingBag,
+  Mic
 } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   openSettings: () => void;
+  openVoiceCloning: () => void;
   serverOnline: boolean;
 }
 
@@ -22,10 +25,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   openSettings,
+  openVoiceCloning,
   serverOnline
 }) => {
   const menuItems = [
     { id: 'studio', label: 'DUZK Studio Lồng Tiếng', icon: Sparkles, badge: 'AI ASR' },
+    { id: 'marketing', label: 'AI Video Marketing', icon: ShoppingBag, badge: 'AIDA 2.5D' },
     { id: 'batch', label: 'Tải Kênh Hàng Loạt', icon: Layers, badge: 'HD' },
     { id: 'vault', label: 'Thư Viện Video Đã Xuất', icon: Film },
   ];
@@ -146,6 +151,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Footer / Settings */}
       <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <button
+          onClick={openVoiceCloning}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '10px 12px',
+            borderRadius: 'var(--radius-md)',
+            background: 'linear-gradient(90deg, rgba(0, 242, 254, 0.12) 0%, rgba(155, 81, 224, 0.12) 100%)',
+            color: '#00F2FE',
+            border: '1px solid rgba(0, 242, 254, 0.3)',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 700,
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <Mic size={16} color="#00F2FE" />
+          <span className="nav-label">VoxCPM2 Voice Cloning</span>
+        </button>
+
         <button
           onClick={openSettings}
           style={{

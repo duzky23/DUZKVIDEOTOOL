@@ -84,6 +84,14 @@ export const DubbingStudio: React.FC<DubbingStudioProps> = ({ apiKey, openSettin
 
   const [useProxyStream, setUseProxyStream] = useState(false);
 
+  // Remotion & CapCut Pro FX Options
+  const [enableProgressBar, setEnableProgressBar] = useState(true);
+  const [enableKineticSubtitles, setEnableKineticSubtitles] = useState(true);
+  const [capcutTransition, setCapcutTransition] = useState('zoom_in');
+  const [capcutTextAnim, setCapcutTextAnim] = useState('kinetic_pop');
+  const [exportingCapcut, setExportingCapcut] = useState(false);
+  const [capcutExportSuccess, setCapcutExportSuccess] = useState('');
+
   // Render Result
   const [renderResult, setRenderResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -365,6 +373,8 @@ export const DubbingStudio: React.FC<DubbingStudioProps> = ({ apiKey, openSettin
           subtitleColor,
           enableDubbingVoice: isOnlySubtitles ? false : enableDubbingVoice,
           generateCover,
+          enableProgressBar,
+          enableKineticSubtitles,
           platform: videoData.platform
         })
       });
@@ -990,6 +1000,145 @@ export const DubbingStudio: React.FC<DubbingStudioProps> = ({ apiKey, openSettin
                 />
                 <span><strong>🎨 Tự động tạo ảnh bìa Thumbnail (AI Cover Generator)</strong></span>
               </label>
+
+              {/* Remotion Engine & Motion FX */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-cyan)' }}>
+                  🎬 Hiệu Ứng Remotion & Motion FX (TikTok / Reels):
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={enableProgressBar}
+                      onChange={(e) => setEnableProgressBar(e.target.checked)}
+                      style={{ width: '15px', height: '15px', accentColor: 'var(--accent-cyan)' }}
+                    />
+                    <span>Thanh Tiến Trình (Glow Bar)</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={enableKineticSubtitles}
+                      onChange={(e) => setEnableKineticSubtitles(e.target.checked)}
+                      style={{ width: '15px', height: '15px', accentColor: 'var(--accent-red)' }}
+                    />
+                    <span>Chữ Kinetic Phát Sáng</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* CapCut PC Pro Export Settings Card */}
+            <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px', border: '1px solid rgba(155, 81, 224, 0.3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '18px' }}>✂️</span>
+                  <span style={{ fontWeight: 700, fontSize: '15px', color: '#FFF' }}>Cấu Hình Xuất CapCut PC Pro</span>
+                </div>
+                <span className="badge" style={{ background: 'linear-gradient(135deg, #9B51E0, #FE2C55)', color: '#FFF', fontSize: '9px', fontWeight: 800 }}>
+                  NATIVE DRAFT
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, marginBottom: '4px', color: 'var(--text-secondary)' }}>
+                    Chuyển Cảnh (Transitions):
+                  </label>
+                  <select
+                    className="input-field"
+                    value={capcutTransition}
+                    onChange={(e) => setCapcutTransition(e.target.value)}
+                    style={{ width: '100%', fontSize: '12px', padding: '8px' }}
+                  >
+                    <option value="zoom_in">🔍 Phóng To Nhanh (Zoom In)</option>
+                    <option value="slide_left">➡️ Trượt Trái (Slide Left)</option>
+                    <option value="flash_white">⚡ Chớp Trắng (Flash White)</option>
+                    <option value="fade_black">🌑 Mờ Đen (Fade Black)</option>
+                    <option value="glitch">📺 Nhiễu Sóng (Glitch)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, marginBottom: '4px', color: 'var(--text-secondary)' }}>
+                    Hiệu Ứng Chữ (Text FX):
+                  </label>
+                  <select
+                    className="input-field"
+                    value={capcutTextAnim}
+                    onChange={(e) => setCapcutTextAnim(e.target.value)}
+                    style={{ width: '100%', fontSize: '12px', padding: '8px' }}
+                  >
+                    <option value="kinetic_pop">💥 Chữ Nảy Pop-In</option>
+                    <option value="neon_glow">🌟 Viền Sáng Neon Cyan</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!videoData?.videoUrl) {
+                    alert('Chưa có video để xuất');
+                    return;
+                  }
+                  setExportingCapcut(true);
+                  setCapcutExportSuccess('');
+                  try {
+                    const res = await fetch('/api/export-capcut-draft', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        videoUrl: videoData.videoUrl,
+                        title: majorTitle || videoData.title || 'DUZK_CapCut_Project',
+                        subtitles: scriptData?.segments || [],
+                        voiceId: selectedVoice,
+                        enableDubbingVoice: true,
+                        transitionType: capcutTransition,
+                        textAnimation: capcutTextAnim,
+                        sfxList: [
+                          { name: 'whoosh', timeSec: 0, durationSec: 1.0 },
+                          { name: 'pop', timeSec: 5.0, durationSec: 0.8 },
+                          { name: 'ding', timeSec: 12.0, durationSec: 1.0 }
+                        ]
+                      })
+                    });
+                    const json = await res.json();
+                    if (json.ok) {
+                      setCapcutExportSuccess(`🎉 Đã xuất thành công dự án vào CapCut PC (${json.data.projectName})!`);
+                    } else {
+                      alert(`Lỗi xuất CapCut: ${json.error}`);
+                    }
+                  } catch (err: any) {
+                    alert(`Lỗi: ${err.message}`);
+                  } finally {
+                    setExportingCapcut(false);
+                  }
+                }}
+                disabled={exportingCapcut || !videoData}
+                className="btn btn-secondary"
+                style={{
+                  padding: '10px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  background: 'rgba(155, 81, 224, 0.15)',
+                  border: '1px solid rgba(155, 81, 224, 0.4)',
+                  color: '#D8B4FE',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                {exportingCapcut ? <RefreshCw className="spin" size={14} /> : <span>✂️ Xuất Thẳng Sang CapCut PC Draft</span>}
+              </button>
+
+              {capcutExportSuccess && (
+                <div style={{ fontSize: '11px', color: '#10B981', fontWeight: 600, textAlign: 'center' }}>
+                  {capcutExportSuccess}
+                </div>
+              )}
             </div>
 
             {/* Voice & Sound Mixer Controls */}
